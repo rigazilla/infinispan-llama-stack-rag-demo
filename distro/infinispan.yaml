@@ -1,0 +1,81 @@
+version: '2'
+
+distro_name: infinispan
+
+apis:
+  - inference
+  - vector_io
+  - tool_runtime
+  - files
+  - file_processors
+  - conversations
+  - prompts
+  - connectors
+  - responses
+
+image_name: infinispan
+
+server:
+  port: 8321
+
+providers:
+  inference:
+  - provider_id: ollama
+    provider_type: remote::ollama
+    config:
+      url: ${env.OLLAMA_URL:=http://localhost:11434}
+  - provider_id: sentence-transformers
+    provider_type: inline::sentence-transformers
+    config:
+      trust_remote_code: false
+
+  vector_io:
+  - provider_id: infinispan
+    provider_type: remote::infinispan
+    config:
+      url: ${env.INFINISPAN_URL:=http://localhost:11222}
+      username: ${env.INFINISPAN_USERNAME:=admin}
+      password: ${env.INFINISPAN_PASSWORD:=password}
+      use_https: false
+      auth_mechanism: digest
+      verify_tls: false
+      persistence:
+        namespace: vector_io::infinispan
+        backend: kv_default
+
+  files:
+  - provider_id: builtin-files
+    provider_type: inline::localfs
+    config:
+      storage_dir: ./data/files
+      metadata_store:
+        table_name: files_metadata
+        backend: sql_default
+
+  file_processors:
+  - provider_id: pypdf
+    provider_type: inline::pypdf
+
+  tool_runtime:
+  - provider_id: file-search
+    provider_type: inline::file-search
+
+  responses:
+  - provider_id: builtin
+    provider_type: inline::builtin
+    config:
+      persistence:
+        agent_state:
+          namespace: agents
+          backend: kv_default
+        responses:
+          table_name: responses
+          backend: sql_default
+          max_write_queue_size: 10000
+          num_writers: 4
+
+vector_stores:
+  default_provider_id: infinispan
+  default_embedding_model:
+    provider_id: sentence-transformers
+    model_id: nomic-ai/nomic-embed-text-v1.5

@@ -1,0 +1,31 @@
+services:
+  infinispan:
+    image: quay.io/infinispan/server:16.1
+    container_name: infinispan-demo
+    ports:
+      - "11222:11222"
+    environment:
+      USER: admin
+      PASS: password
+
+  # Ollama service - runs by default with 'docker compose up'
+  # To skip and use your own Ollama: 'docker compose up infinispan'
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-demo
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        ollama serve &
+        pid=$!
+        sleep 5
+        ollama pull ${OLLAMA_MODEL:-llama3.2:3b}
+        wait $pid
+
+volumes:
+  ollama-data:
